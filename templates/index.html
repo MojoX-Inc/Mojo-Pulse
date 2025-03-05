@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}CPU Monitor{% endblock %}
+{% block content %}
+<div class="metric-box">
+    <h3>CPU Metrics</h3>
+    <div class="metric">
+        <p>CPU Model: {{ cpu_model }}</p>
+    </div>
+    <div class="metric">
+        <p>CPU Usage: <span id="cpu">0</span>%</p>
+        <div class="progress-bar"><div id="cpu-bar" class="progress"></div></div>
+    </div>
+    <div id="temp-section" class="metric" style="display: none;">
+        <p>CPU Temperature: <span id="temp">0</span>°C</p>
+    </div>
+    <div class="metric">
+        <p>CPU Frequency: <span id="cpu-freq">0</span> MHz</p>
+    </div>
+    <div class="metric">
+        <p>CPU Cores: <span id="cpu-cores">0</span></p>
+    </div>
+    <div class="metric">
+        <p>System Uptime: <span id="uptime">0</span></p>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        async function updateMetrics() {
+            try {
+                const response = await fetch('/metrics');
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                console.log('Metrics data:', data);
+
+                const cpuEl = document.getElementById('cpu');
+                const cpuBar = document.getElementById('cpu-bar');
+                if (cpuEl && cpuBar) {
+                    cpuEl.textContent = data.cpu.toFixed(1);
+                    window.commonFunctions.setProgressStyle(cpuBar, data.cpu);
+                }
+
+                const tempSection = document.getElementById('temp-section');
+                const tempEl = document.getElementById('temp');
+                if (data.temp !== null && tempSection && tempEl) {
+                    tempSection.style.display = 'block';
+                    tempEl.textContent = data.temp.toFixed(1);
+                } else {
+                    tempSection.style.display = 'none';
+                }
+
+                const cpuFreqEl = document.getElementById('cpu-freq');
+                if (cpuFreqEl) {
+                    cpuFreqEl.textContent = data.cpu_freq !== null && data.cpu_freq > 0 ? data.cpu_freq.toFixed(0) : 'N/A';
+                }
+
+                const cpuCoresEl = document.getElementById('cpu-cores');
+                if (cpuCoresEl) {
+                    cpuCoresEl.textContent = data.cpu_cores || 'N/A';
+                }
+
+                const uptimeEl = document.getElementById('uptime');
+                if (uptimeEl) {
+                    uptimeEl.textContent = window.commonFunctions.formatUptime(data.uptime);
+                }
+
+                const alertDiv = document.getElementById('alert');
+                if (alertDiv) {
+                    alertDiv.style.display = data.cpu > 90 ? 'block' : 'none';
+                    alertDiv.textContent = 'Warning: High CPU usage!';
+                }
+                
+                document.getElementById('error').style.display = 'none';
+            } catch (error) {
+                console.error('Error fetching metrics:', error);
+                document.getElementById('error').textContent = 'Error: ' + error.message;
+                document.getElementById('error').style.display = 'block';
+            }
+        }
+
+        setInterval(updateMetrics, 1000);
+        updateMetrics();
+    });
+</script>
+{% endblock %}

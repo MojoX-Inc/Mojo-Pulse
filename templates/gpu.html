@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}GPU Monitor{% endblock %}
+{% block content %}
+<div class="metric-box" id="gpu-section" style="display: none;">
+    <h3>GPU Metrics</h3>
+    <div class="metric">
+        <p>GPU Model: {{ gpu_name }}</p>
+    </div>
+    <div class="metric">
+        <p>GPU Usage: <span id="gpu">0</span>%</p>
+        <div class="progress-bar"><div id="gpu-bar" class="progress"></div></div>
+    </div>
+    <div class="metric">
+        <p>GPU Memory Usage: <span id="gpu-mem">0</span>%</p>
+        <div class="progress-bar"><div id="gpu-mem-bar" class="progress"></div></div>
+    </div>
+    <div class="metric">
+        <p>GPU Memory Total: <span id="gpu-mem-total">N/A</span> MB</p>
+    </div>
+    <div class="metric">
+        <p>GPU Memory Free: <span id="gpu-mem-free">N/A</span> MB</p>
+    </div>
+    <div class="metric">
+        <p>System Uptime: <span id="uptime">0</span></p>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        async function updateMetrics() {
+            try {
+                const response = await fetch('/metrics');
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+
+                const gpuSection = document.getElementById('gpu-section');
+                if (data.gpu !== null && gpuSection) {
+                    gpuSection.style.display = 'block';
+                    
+                    const gpuEl = document.getElementById('gpu');
+                    const gpuBar = document.getElementById('gpu-bar');
+                    if (gpuEl && gpuBar) {
+                        gpuEl.textContent = data.gpu.toFixed(1);
+                        window.commonFunctions.setProgressStyle(gpuBar, data.gpu);
+                    }
+                    
+                    const gpuMemEl = document.getElementById('gpu-mem');
+                    const gpuMemBar = document.getElementById('gpu-mem-bar');
+                    if (gpuMemEl && gpuMemBar) {
+                        gpuMemEl.textContent = data.gpu_mem.toFixed(1);
+                        window.commonFunctions.setProgressStyle(gpuMemBar, data.gpu_mem);
+                    }
+
+                    const gpuMemTotalEl = document.getElementById('gpu-mem-total');
+                    const gpuMemFreeEl = document.getElementById('gpu-mem-free');
+                    if (gpuMemTotalEl && gpuMemFreeEl) {
+                        gpuMemTotalEl.textContent = data.gpu_mem_total ? data.gpu_mem_total.toFixed(0) : 'N/A';
+                        gpuMemFreeEl.textContent = data.gpu_mem_free ? data.gpu_mem_free.toFixed(0) : 'N/A';
+                    }
+
+                    const uptimeEl = document.getElementById('uptime');
+                    if (uptimeEl) {
+                        uptimeEl.textContent = window.commonFunctions.formatUptime(data.uptime);
+                    }
+
+                    const alertDiv = document.getElementById('alert');
+                    if (alertDiv) {
+                        alertDiv.style.display = data.gpu > 90 ? 'block' : 'none';
+                        alertDiv.textContent = 'Warning: High GPU usage!';
+                    }
+                } else {
+                    gpuSection.style.display = 'none';
+                }
+
+                document.getElementById('error').style.display = 'none';
+            } catch (error) {
+                document.getElementById('error').textContent = 'Error: ' + error.message;
+                document.getElementById('error').style.display = 'block';
+            }
+        }
+
+        setInterval(updateMetrics, 1000);
+        updateMetrics();
+    });
+</script>
+{% endblock %}

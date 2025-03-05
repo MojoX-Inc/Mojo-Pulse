@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Memory Monitor{% endblock %}
+{% block content %}
+    <div class="metric-box">
+        <h3>Memory Metrics</h3>
+        <div class="metric">
+            <p>RAM Usage: <span id="ram">0</span>%</p>
+            <div class="progress-bar"><div id="ram-bar" class="progress"></div></div>
+        </div>
+    </div>
+{% endblock %}
+{% block scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            async function updateMetrics() {
+                try {
+                    const response = await fetch('/metrics');
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const data = await response.json();
+
+                    const ramEl = document.getElementById('ram');
+                    const ramBar = document.getElementById('ram-bar');
+                    if (ramEl && ramBar) {
+                        ramEl.textContent = data.ram.toFixed(1);
+                        window.commonFunctions.setProgressStyle(ramBar, data.ram);
+                    }
+
+                    const alertDiv = document.getElementById('alert');
+                    if (alertDiv) {
+                        alertDiv.style.display = data.ram > 90 ? 'block' : 'none';
+                        alertDiv.textContent = 'Warning: High RAM usage!';
+                    }
+                    
+                    document.getElementById('error').style.display = 'none';
+                } catch (error) {
+                    document.getElementById('error').textContent = 'Error: ' + error.message;
+                    document.getElementById('error').style.display = 'block';
+                }
+            }
+
+            setInterval(updateMetrics, 1000);
+            updateMetrics();
+        });
+    </script>
+{% endblock %}

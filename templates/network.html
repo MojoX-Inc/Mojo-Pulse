@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Network{% endblock %}
+{% block content %}
+<h2>Network Status</h2>
+<div class="metric-box">
+    <h3>Network Interface</h3>
+    <p>Bytes Sent: <span id="bytes-sent">Loading...</span></p>
+    <p>Bytes Received: <span id="bytes-recv">Loading...</span></p>
+    <p>Packets Sent: <span id="packets-sent">Loading...</span></p>
+    <p>Packets Received: <span id="packets-recv">Loading...</span></p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    function updateNetworkMetrics() {
+        fetch('/metrics')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('bytes-sent').textContent = `${(data.network.bytes_sent / (1024 * 1024)).toFixed(2)} MB`;
+                document.getElementById('bytes-recv').textContent = `${(data.network.bytes_recv / (1024 * 1024)).toFixed(2)} MB`;
+                document.getElementById('packets-sent').textContent = data.network.packets_sent;
+                document.getElementById('packets-recv').textContent = data.network.packets_recv;
+            })
+            .catch(error => console.error('Error fetching metrics:', error));
+    }
+
+    setInterval(updateNetworkMetrics, 2000);
+    updateNetworkMetrics();
+</script>
+{% endblock %}

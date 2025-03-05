@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Disk Monitor{% endblock %}
+{% block content %}
+    <div class="metric-box">
+        <h3>Disk Metrics</h3>
+        <div class="metric">
+            <p>Disk Usage: <span id="disk">0</span>%</p>
+            <div class="progress-bar"><div id="disk-bar" class="progress"></div></div>
+        </div>
+        <div class="metric">
+            <p>Total Space: <span id="disk-total">0</span> GB</p>
+        </div>
+        <div class="metric">
+            <p>Used Space: <span id="disk-used">0</span> GB</p>
+        </div>
+        <div class="metric">
+            <p>Free Space: <span id="disk-free">0</span> GB</p>
+        </div>
+        <div class="metric">
+            <p>System Uptime: <span id="uptime">0</span></p>
+        </div>
+    </div>
+{% endblock %}
+{% block scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            async function updateMetrics() {
+                try {
+                    const response = await fetch('/metrics');
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const data = await response.json();
+
+                    const diskEl = document.getElementById('disk');
+                    const diskBar = document.getElementById('disk-bar');
+                    if (diskEl && diskBar) {
+                        diskEl.textContent = data.disk.toFixed(1);
+                        window.commonFunctions.setProgressStyle(diskBar, data.disk);
+                    }
+
+                    const diskTotalEl = document.getElementById('disk-total');
+                    const diskUsedEl = document.getElementById('disk-used');
+                    const diskFreeEl = document.getElementById('disk-free');
+                    if (diskTotalEl && diskUsedEl && diskFreeEl) {
+                        diskTotalEl.textContent = (data.disk_total / (1024 ** 3)).toFixed(2);
+                        diskUsedEl.textContent = (data.disk_used / (1024 ** 3)).toFixed(2);
+                        diskFreeEl.textContent = (data.disk_free / (1024 ** 3)).toFixed(2);
+                    }
+
+                    const uptimeEl = document.getElementById('uptime');
+                    if (uptimeEl) {
+                        uptimeEl.textContent = window.commonFunctions.formatUptime(data.uptime);
+                    }
+
+                    const alertDiv = document.getElementById('alert');
+                    if (alertDiv) {
+                        alertDiv.style.display = data.disk > 90 ? 'block' : 'none';
+                        alertDiv.textContent = 'Warning: High Disk usage!';
+                    }
+                    
+                    document.getElementById('error').style.display = 'none';
+                } catch (error) {
+                    document.getElementById('error').textContent = 'Error: ' + error.message;
+                    document.getElementById('error').style.display = 'block';
+                }
+            }
+
+            setInterval(updateMetrics, 1000);
+            updateMetrics();
+        });
+    </script>
+{% endblock %}
